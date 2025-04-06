@@ -3,10 +3,10 @@ package com.nemesis.jobsearch.ui.navigation
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,8 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -93,8 +94,17 @@ private fun RowScope.JobSearchNavigationBarItem(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val color by animateColorAsState(if (selected) NavItemActiveColor else NavItemInactiveColor)
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) NavItemPressedScale else 1f)
+    val scale = remember { Animatable(1f) }
+
+    LaunchedEffect(Unit) {
+        interactionSource.interactions.collect {
+            when (it) {
+                is PressInteraction.Press -> scale.animateTo(NavItemPressedScale)
+                is PressInteraction.Release -> scale.animateTo(1f)
+                is PressInteraction.Cancel -> scale.animateTo(1f)
+            }
+        }
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -107,7 +117,10 @@ private fun RowScope.JobSearchNavigationBarItem(
                 onClick = onClick
             )
             .weight(1f)
-            .scale(scale)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
             .padding(bottom = 8.dp)
     ) {
         Box {
